@@ -1,12 +1,14 @@
 ;;; bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
+;; Copyright (C) 2019 Gabriele Bozzola
 ;; Copyright (C) 2013 Mike McCourt
 ;;
 ;; Authors: Mike McCourt <mkmcc@astro.berkeley.edu>
+;; Authors: Gabriele Bozzola <sbozzolator@gmail.com>
 ;; URL: https://github.com/mkmcc/bibslurp
-;; Version: 0.0.2
+;; Version: 0.0.3
 ;; Keywords: bibliography, nasa ads
-;; Package-Requires: ((s "1.6.0") (dash "1.5.0"))
+;; Package-Requires: ((s "1.6.0") (dash "1.5.0") (request "0.3.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -124,10 +126,14 @@
 
 ;;; Code:
 (require 's)
+(require 'request)
 (require 'dash)
 (require 'widget)
 (eval-when-compile
   (require 'wid-edit))
+
+
+(defvar auth-token "TOKEN")
 
 (defgroup bibslurp nil
   "retrieve BibTeX entries from NASA ADS."
@@ -232,6 +238,87 @@ configuration."
             (replace-regexp-in-string " " url-sep search-string)
             url-end)))
 
+;; Functions to interface with ADS APIs
+(defun bibslurp/make-request (search-string)
+  "Make the API request using the token and retrieving
+ * 1: score
+ * 2: bibcode
+ * 3: date
+ * 4: authors
+ * 5: title
+   The output is a nested list with the request data already parsed."
+  (request-response-data (request
+		  "https://api.adsabs.harvard.edu/v1/search/query"
+		  :headers
+		  `(("Authorization" . ,(concat "Bearer " auth-token)))
+		  :params
+		  `(("q" . ,search-string) ("fl" . "bibcode,date,author,title,score"))
+		  :type "GET"
+                  ; Why does this sync have to be here?
+                  :sync t
+		  :parser 'json-read)
+                 )
+  )
+
+(defun bibslurp/request-bibtex (bibcode)
+  "Make the API request using the token to obtain the bibtex file."
+  (request-response-data (request
+		  "https://api.adsabs.harvard.edu/v1/export/bibtex"
+		  :headers
+		  `(("Authorization" . ,(concat "Bearer " auth-token)))
+		  :data
+		  `(("bibcode" . ,bibcode))
+		  :type "POST"
+                  ; Why does this sync have to be here?
+                  :sync t
+		  :parser 'json-read)
+                 )
+  )
+
+(defun bibslurp/extract-bibtex-from-request (request-data)
+  "Return the actual bibtex file"
+  (cdr (assoc 'export request-data))
+  )
+
+(defun bibslurp/request-bibtex (request-data)
+  "Return the actual bibtex file for the bibcode"
+  (bibslurp/extract-bibtex-from-request (bibslurp/request-bibtex bibcode))
+  )
+
+(defun bibslurp/extract-data-from-request (request-data)
+  "Return the actual data of interest among all the output from
+   the query. This is done by extracting the 'docs field.
+   The return value is a vector with all the available results."
+  (cdr (assoc 'docs (assoc 'response request-data)))
+  )
+
+(defun bibslurp/requested-data (search-string)
+  "Make the query and return the data"
+  (bibslurp/extract-data-from-request (bibslurp/make-request search-string))
+  )
+
+(defun bibslurp/clean-entry-from-request (entry)
+  "Return the same list as returned by the old
+   bibslurp/clean-entry but with data obtained via API, except
+   for the number which is added with bibslurp/prepare-entry-list."
+  (let ((score     (number-to-string (cdr (assoc 'score entry))))
+        (date      (cdr (assoc 'date entry)))
+        ; Transform vector into string
+        (authors   (mapconcat 'identity (cdr (assoc 'author entry)) "; "))
+        (abs-name  (cdr (assoc 'bibcode entry)))
+        (title     (aref (cdr (assoc 'title entry)) 0))
+        )
+        (list score abs-name date authors title "DUMMY"))
+  )
+
+(defun bibslurp/prepare-entry-list (requested-data)
+  "Prepend the number of the result to the requested data"
+  (seq-map-indexed
+   (lambda
+     (entry idx)
+     (cons (number-to-string idx) (bibslurp/clean-entry-from-request entry)))
+   requested-data)
+  )
 
 ;; functions to parse and display the search results page.
 (defvar bibslurp-query-history nil
@@ -263,7 +350,8 @@ the mode at any time by hitting 'q'."
     (with-temp-buffer
       (url-insert-file-contents search-url)
       (setq bibslurp-entry-list
-	    (-map 'bibslurp/clean-entry (bibslurp/read-table))))
+	    (-map 'bibslurp/clean-entry (bibslurp/read-table)))
+      )
     (with-current-buffer buf
       (erase-buffer)
       (insert "ADS Search Results for "
@@ -297,6 +385,52 @@ the mode at any time by hitting 'q'."
     (set-buffer-modified-p nil)
     (delete-other-windows)))
 
+(defun bibslurp/search-results-with-request (requested-data &optional search-string)
+  "Create the buffer for the results of a search.
+
+Displays results in a new buffer called \"ADS Search Results\"
+and enters `bibslurp-mode'.  You can retrieve a bibtex entry by
+typing the number in front of the abstract link and hitting
+enter.  Hit 'a' instead to pull up the abstract.  You can exit
+the mode at any time by hitting 'q'."
+  (let ((buf (get-buffer-create "ADS Search Results"))
+        (inhibit-read-only t))
+      (setq bibslurp-entry-list
+	    (bibslurp/prepare-entry-list requested-data))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert "ADS Search Results for "
+	      ;; `search-string' is nil when we use advanced search.
+              (if search-string
+		  (concat "\"" (propertize search-string
+					   'face 'font-lock-string-face) "\"")
+		"advanced search")
+              "\n\n")
+      (insert
+       (propertize
+        (concat
+         "Scroll with SPC and SHIFT-SPC, or search using 's' and 'r'."
+         "\n\n"
+         "* To slurp a bibtex entry, type the number of the abstract and hit RET."
+         "\n\n"
+         "* To view an abstract, type the number of the abstract and hit 'a'."
+         "\n\n"
+         "* To quit and restore the previous window configuration, hit 'q'."
+         "\n\n\n\n") 'face 'font-lock-comment-face))
+      (save-excursion
+        (insert
+         (mapconcat 'identity
+		    (--map (apply 'bibslurp/print-entry it)
+			   bibslurp-entry-list) ""))
+	;; Shave off the last newlines
+	(delete-char -4))
+      (bibslurp-mode))
+    (switch-to-buffer buf)
+    (setq buffer-read-only t)
+    (set-buffer-modified-p nil)
+    (delete-other-windows)))
+
+
 ;;;###autoload
 (defun bibslurp-query-ads (&optional search-string)
   "Ask for a search string and sends the query to NASA ADS.
@@ -321,8 +455,11 @@ Press \"C-c C-c\" to turn to the advanced search interface."
 					'bibslurp-query-history)))
 	  ;; Show search results for the given search string.
 	  (window-configuration-to-register :bibslurp-window)
-	  (bibslurp/search-results (bibslurp/build-ads-url search-string)
-				   search-string))
+	  ;; (bibslurp/search-results (bibslurp/build-ads-url search-string)
+	  ;;       		   search-string)
+          (bibslurp/search-results-with-request (bibslurp/requested-data search-string)
+	        		                search-string)
+          )
       ;; We've received a `quit' signal.  If it has been thrown by C-c C-c,
       ;; start the ADS advanced search, otherwise emit the standard error.
       ;; XXX: actually `last-input-event' holds only the very last event (C-c,
@@ -505,7 +642,10 @@ more general."
 
 (defun bibslurp/suggest-label ()
   "Parse an abstract page and suggest a bibtex label.  Returns an
-empty string if no suggestion is found."
+empty string if no suggestion is found.
+
+TODO: Improve support for non ASCII characters.
+"
   (save-excursion
     (goto-char (point-min))
     (let ((author-regexp
@@ -520,7 +660,6 @@ empty string if no suggestion is found."
 	(when (re-search-forward date-regexp nil t)
 	  (setq date (match-string-no-properties 1))
 	  (concat author (s-right 4 date)))))))
-
 
 
 ;;; functions to display abstracts
