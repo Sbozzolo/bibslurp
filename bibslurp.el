@@ -173,8 +173,8 @@
 (defvar bibslurp-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "RET") 'bibslurp-slurp-bibtex)
-    (define-key map (kbd "z")   'bibslurp-slurp-bibtex)
+    (define-key map (kbd "RET") 'bibslurp-slurp-bibtex-with-request)
+    (define-key map (kbd "z")   'bibslurp-slurp-bibtex-with-request)
     (define-key map "a" 'bibslurp-show-abstract)
     ;; Navigation
     (define-key map (kbd "SPC")   'scroll-up)
@@ -260,7 +260,7 @@ configuration."
                  )
   )
 
-(defun bibslurp/request-bibtex (bibcode)
+(defun bibslurp/make-request-bibtex (bibcode)
   "Make the API request using the token to obtain the bibtex file."
   (request-response-data (request
 		  "https://api.adsabs.harvard.edu/v1/export/bibtex"
@@ -280,9 +280,9 @@ configuration."
   (cdr (assoc 'export request-data))
   )
 
-(defun bibslurp/request-bibtex (request-data)
+(defun bibslurp/request-bibtex (bibcode)
   "Return the actual bibtex file for the bibcode"
-  (bibslurp/extract-bibtex-from-request (bibslurp/request-bibtex bibcode))
+  (bibslurp/extract-bibtex-from-request (bibslurp/make-request-bibtex bibcode))
   )
 
 (defun bibslurp/extract-data-from-request (request-data)
@@ -546,7 +546,7 @@ TODO: this is really messy code.  cleanup."
 				 (propertize authors 'face 'bibslurp-author-face)))
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
-	     "\n\n\n\n") 'number num)))
+	     "\n\n\n\n") 'bibcode abs-name)))
 
 ;; functions to find and retrieve bibtex entries
 (defun bibslurp/absurl-to-bibdata (abs-url)
@@ -584,6 +584,33 @@ It can be either
   :group 'bibslurp
   :type '(choice (const :tag "AuthorYear" author-year)
 		 (const :tag "Bibcode"    bibcode)))
+
+(defun bibslurp/biburl-to-bib-with-request (bibcode &optional new-label)
+  "Take the bibcode for an ADS bibtex entry and return the entry as a
+string.  The format of the label is controlled by
+`bibslurp-bibtex-label-format'."
+  (let ((buf (bibslurp/request-bibtex bibcode)))
+    (with-current-buffer buf
+      (goto-char (point-min))
+      ;; first, look for a bibtex definition and replace the label if
+      ;; appropriate.
+      (when (re-search-forward "@\\sw+{\\([^,]+\\)," nil t)
+	;; If `bibslurp-bibtex-label-format' is set to `author-year', replace
+	;; the label with the one returned by `bibslurp/suggest-label',
+	;; otherwise use the Bibcode as label.
+	(and
+	 (equal bibslurp-bibtex-label-format 'author-year)
+	 new-label (not (string-equal new-label ""))
+	 (replace-match new-label t t nil 1))
+        ;; next, find the definition and return it.  use the nifty
+        ;; function `forward-sexp' to navigate to the end.
+        (goto-char (point-min))
+        (re-search-forward "@\\sw+")
+        (let ((bpoint (point)))
+          (forward-sexp)
+          (concat (match-string-no-properties 0)
+                  (buffer-substring bpoint (point))))))))
+
 
 (defun bibslurp/biburl-to-bib (bib-url &optional new-label)
   "Take the URL for an ADS bibtex entry and return the entry as a
@@ -640,6 +667,28 @@ more general."
 	(kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
+(defun bibslurp-slurp-bibtex-with-request (&optional bibcode)
+  "Automatically find the bibtex entry for an abstract in the
+NASA ADS database.
+
+This function is rather specific -- it presumes you've used
+`bibslurp-query-nasa-ads' to search ADS for an abstract.  Then, you
+can call this function from the *Bibslurp* buffer.  It will prompt
+for the number in front of the abstract you want, then will find
+the bibtex entry and save it to the kill ring.
+
+The functions `bibslurp/absurl-to-bibdata' and `bibslurp/biburl-to-bib' are
+more general."
+  (interactive)
+  (setq bibcode
+	(or bibcode
+	    current-prefix-arg
+	    (get-text-property (point) 'bibcode)
+	    (read-string "Bibcode: ")))
+            (kill-new (bibslurp/biburl-to-bib-with-request bibcode new-label))
+            (message "Saved bibtex entry to kill-ring."))
+
+
 (defun bibslurp/suggest-label ()
   "Parse an abstract page and suggest a bibtex label.  Returns an
 empty string if no suggestion is found.
@@ -670,7 +719,7 @@ TODO: Improve support for non ASCII characters.
   (when (re-search-forward
          "<meta\\s-+name=\"citation_title\"\\s-+content=\"\\(.*?\\)\""
          nil t)
-    (let ((title (match-string 1)))
+    (let ((title (match-striqng 1)))
       (goto-char (point-min))
       (when (re-search-forward
              "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\(.*?\\)\""
