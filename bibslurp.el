@@ -538,6 +538,7 @@ TODO: this is really messy code.  cleanup."
          (fmt-score (propertize (format "(%s)" score) 'face 'bibslurp-score-face))
          (pad (make-string (- 80 (length fmt-num) (length fmt-score)) ? ))
          (meta (concat fmt-num pad fmt-score)))
+    ;; Attach information like bibcode, authors and date
     (propertize
      (concat meta "\n"
 	     (s-truncate 80
@@ -546,7 +547,7 @@ TODO: this is really messy code.  cleanup."
 				 (propertize authors 'face 'bibslurp-author-face)))
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
-	     "\n\n\n\n") 'bibcode abs-name)))
+	     "\n\n\n\n") 'bibcode abs-name 'authors authors 'date date)))
 
 ;; functions to find and retrieve bibtex entries
 (defun bibslurp/absurl-to-bibdata (abs-url)
@@ -589,27 +590,13 @@ It can be either
   "Take the bibcode for an ADS bibtex entry and return the entry as a
 string.  The format of the label is controlled by
 `bibslurp-bibtex-label-format'."
-  (let ((buf (bibslurp/request-bibtex bibcode)))
-    (with-current-buffer buf
-      (goto-char (point-min))
-      ;; first, look for a bibtex definition and replace the label if
-      ;; appropriate.
-      (when (re-search-forward "@\\sw+{\\([^,]+\\)," nil t)
-	;; If `bibslurp-bibtex-label-format' is set to `author-year', replace
-	;; the label with the one returned by `bibslurp/suggest-label',
-	;; otherwise use the Bibcode as label.
-	(and
-	 (equal bibslurp-bibtex-label-format 'author-year)
-	 new-label (not (string-equal new-label ""))
-	 (replace-match new-label t t nil 1))
-        ;; next, find the definition and return it.  use the nifty
-        ;; function `forward-sexp' to navigate to the end.
-        (goto-char (point-min))
-        (re-search-forward "@\\sw+")
-        (let ((bpoint (point)))
-          (forward-sexp)
-          (concat (match-string-no-properties 0)
-                  (buffer-substring bpoint (point))))))))
+  (if (not (equal bibslurp-bibtex-label-format 'author-year))
+      (bibslurp/request-bibtex bibcode) ; Return bibtex with bibcode
+    (let ((bibtex (bibslurp/request-bibtex bibcode)))
+       (when (not (string-equal new-label ""))
+         (progn
+           (string-match "@\\sw+{\\([^,]+\\)," bibtex)
+           (replace-match new-label t t bibtex 1))))))
 
 
 (defun bibslurp/biburl-to-bib (bib-url &optional new-label)
@@ -667,27 +654,20 @@ more general."
 	(kill-new (bibslurp/biburl-to-bib bib-url new-label)))
       (message "Saved bibtex entry to kill-ring.")))))
 
-(defun bibslurp-slurp-bibtex-with-request (&optional bibcode)
+(defun bibslurp-slurp-bibtex-with-request ()
   "Automatically find the bibtex entry for an abstract in the
-NASA ADS database.
-
-This function is rather specific -- it presumes you've used
-`bibslurp-query-nasa-ads' to search ADS for an abstract.  Then, you
-can call this function from the *Bibslurp* buffer.  It will prompt
-for the number in front of the abstract you want, then will find
-the bibtex entry and save it to the kill ring.
-
-The functions `bibslurp/absurl-to-bibdata' and `bibslurp/biburl-to-bib' are
-more general."
+NASA ADS database. It works on the entry at the point."
   (interactive)
-  (setq bibcode
-	(or bibcode
-	    current-prefix-arg
-	    (get-text-property (point) 'bibcode)
-	    (read-string "Bibcode: ")))
-            (kill-new (bibslurp/biburl-to-bib-with-request bibcode new-label))
-            (message "Saved bibtex entry to kill-ring."))
-
+  (let ((bibcode (get-text-property (point) 'bibcode))
+        (authors (get-text-property (point) 'authors))
+        (date (get-text-property (point) 'date)))
+    (kill-new (bibslurp/biburl-to-bib-with-request
+               bibcode
+               (bibslurp/suggest-label-with-request authors date)
+               ))
+    (message "Saved bibtex entry to kill-ring.")
+    )
+  )
 
 (defun bibslurp/suggest-label ()
   "Parse an abstract page and suggest a bibtex label.  Returns an
@@ -710,6 +690,14 @@ TODO: Improve support for non ASCII characters.
 	  (setq date (match-string-no-properties 1))
 	  (concat author (s-right 4 date)))))))
 
+(defun bibslurp/suggest-label-with-request (authors date)
+  "Parse an abstract page and suggest a bibtex label.  Returns an
+empty string if no suggestion is found.
+
+TODO: Improve support for non ASCII characters.
+"
+  ;; Take first entry of author list and year in date
+    (concat (car (split-string authors ",")) (s-left 4 date)))
 
 ;;; functions to display abstracts
 
@@ -719,7 +707,7 @@ TODO: Improve support for non ASCII characters.
   (when (re-search-forward
          "<meta\\s-+name=\"citation_title\"\\s-+content=\"\\(.*?\\)\""
          nil t)
-    (let ((title (match-striqng 1)))
+    (let ((title (match-string 1)))
       (goto-char (point-min))
       (when (re-search-forward
              "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\(.*?\\)\""
