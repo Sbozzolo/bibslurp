@@ -21,6 +21,7 @@ more in the future).
 What is working at the moment:
 - Simple search (limited to first few results)
 - Copy a bibtex entry pressing return
+- Show the abstract pressing "a" on an entry
 
 To use the new =bibslurp= a API key is necessary. A key can be obtained following
 the instructions [[https://github.com/adsabs/adsabs-dev-api#access][here]]. Next, the variable =ads-auth-token= has to be set:

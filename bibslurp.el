@@ -254,6 +254,24 @@ configuration."
                  )
   )
 
+(defun bibslurp/make-request-additional-info (bibcode)
+  "Make the API request using the token to obtain additional information.
+At the moment, title,abstract, journal, date and authors."
+  (request-response-data (request
+		  "https://api.adsabs.harvard.edu/v1/search/query"
+		  :headers
+		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
+		  :params
+		  `(("q" . ,bibcode) ("fl" . "title,abstract,pub,author,year")
+                    )
+		  :type "GET"
+                  ; Why does this sync have to be here?
+                  :sync t
+		  :parser 'json-read)
+                 )
+  )
+
+
 (defun bibslurp/extract-bibtex-from-request (request-data)
   "Return the actual bibtex file"
   (cdr (assoc 'export request-data))
@@ -276,12 +294,16 @@ configuration."
   (bibslurp/extract-data-from-request (bibslurp/make-request search-string))
   )
 
+(defun bibslurp/request-additional-info (bibcode)
+  "Make the query and return the data in a associative list."
+  (aref (bibslurp/extract-data-from-request (bibslurp/make-request-additional-info bibcode)) 0))
+
 (defun bibslurp/clean-entry-from-request (entry)
   "Return the same list as returned by the old
    bibslurp/clean-entry but with data obtained via API, except
    for the number which is added with bibslurp/prepare-entry-list."
   (let ((score     (number-to-string (cdr (assoc 'score entry))))
-        (date      (cdr (assoc 'date entry)))
+        (date      (cdr (assoc 'year entry)))
         ; Transform vector into string
         (authors   (mapconcat 'identity (cdr (assoc 'author entry)) "; "))
         (abs-name  (cdr (assoc 'bibcode entry)))
@@ -577,65 +599,34 @@ TODO: Improve support for non ASCII characters.
 
 ;;; functions to display abstracts
 
-(defun bibslurp/format-abs-meta ()
-  "copy title, authors, and source from the header metadata."
-  (goto-char (point-min))
-  (when (re-search-forward
-         "<meta\\s-+name=\"citation_title\"\\s-+content=\"\\(.*?\\)\""
-         nil t)
-    (let ((title (match-string 1)))
-      (goto-char (point-min))
-      (when (re-search-forward
-             "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\(.*?\\)\""
-             nil t)
-        (let ((authors (match-string 1)))
-          (goto-char (point-min))
-          (when (re-search-forward
-                 "<meta\\s-+name=\"dc\\.source\"\\s-+content=\"\\(.*?\\)\""
-                 nil t)
-            (let ((source (match-string 1)))
-              (concat title "\n" authors "\n" source))))))))
-
-(defun bibslurp/format-abs-text ()
-  "return the abstract text"
-  ;; abstracts are displayed as
-  ;;   <h3 align="center">Abstract</h3>
-  ;;   abstract text....
-  ;;   <hr>
-  ;; the <hr> isn't required by html, but it's there in ADS.  so I can
-  ;; quasi-safely use it to mark the end of the abstract
-  (when (re-search-forward
-         "<h3[^>]+>\\s-*Abstract\\s-*</h3>\\(\\(.*\n?\\)+?\\)<hr>" nil t)
-    (s-word-wrap 80 (match-string 1))))
-
-(defun bibslurp/format-abs ()
+(defun bibslurp/format-abs (bibcode)
   "take a buffer containing the HTML for an abstract page and
-turn it into something human readable."
-  (let ((meta (bibslurp/format-abs-meta))
-        (abs (bibslurp/format-abs-text))
-        (inhibit-read-only t))
-    (when (and meta abs)
+turn it into something human readable. Wrap text is it is longer
+than fill-column."
+  (let* ((additional-info (bibslurp/request-additional-info bibcode))
+         (title (aref (cdr (assoc 'title additional-info)) 0))
+         (authors   (mapconcat 'identity (cdr (assoc 'author additional-info)) "; "))
+         (date (cdr (assoc 'year additional-info)))
+         (abs (cdr (assoc 'abstract additional-info)))
+         (journal (cdr (assoc 'pub additional-info)))
+         (inhibit-read-only t))
       (let ((buf (get-buffer-create "ADS Abstract")))
         (with-current-buffer buf
           (erase-buffer)
-          (insert meta "\n\n\n" abs)
+          (insert (propertize (s-word-wrap fill-column title) 'face 'bibslurp-title-face) "\n")
+          (insert (propertize (s-word-wrap fill-column authors) 'face 'bibslurp-author-face) "\n")
+          (insert journal ", " date "\n")
+          (insert "\n\n")
+          (insert (s-word-wrap fill-column abs))
           (view-mode)
           (local-set-key (kbd "q") 'kill-buffer))
-        (switch-to-buffer buf)))))
+        (switch-to-buffer buf))))
 
-(defun bibslurp-show-abstract (&optional link-number)
+(defun bibslurp-show-abstract ()
   "Display the abstract page for a specified link number."
   (interactive)
-  (setq link-number
-	(or link-number
-	    current-prefix-arg
-	    (get-text-property (point) 'number)
-	    (read-string "Link number: ")))
-  (let* ((abs-url (bibslurp/follow-link link-number)))
-    (when abs-url
-      (with-temp-buffer
-        (url-insert-file-contents (bibslurp/follow-link link-number))
-        (bibslurp/format-abs)))))
+  (bibslurp/format-abs (get-text-property (point) 'bibcode))
+  )
 
 ;;; Navigation
 
