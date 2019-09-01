@@ -132,9 +132,6 @@
 (eval-when-compile
   (require 'wid-edit))
 
-
-(defvar auth-token "TOKEN")
-
 (defgroup bibslurp nil
   "retrieve BibTeX entries from NASA ADS."
   :prefix "bibslurp-"
@@ -250,7 +247,7 @@ configuration."
   (request-response-data (request
 		  "https://api.adsabs.harvard.edu/v1/search/query"
 		  :headers
-		  `(("Authorization" . ,(concat "Bearer " auth-token)))
+		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :params
 		  `(("q" . ,search-string) ("fl" . "bibcode,date,author,title,score"))
 		  :type "GET"
@@ -265,7 +262,7 @@ configuration."
   (request-response-data (request
 		  "https://api.adsabs.harvard.edu/v1/export/bibtex"
 		  :headers
-		  `(("Authorization" . ,(concat "Bearer " auth-token)))
+		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :data
 		  `(("bibcode" . ,bibcode))
 		  :type "POST"

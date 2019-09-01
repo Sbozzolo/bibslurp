@@ -8,7 +8,29 @@ We have tried to make bibslurp as simple and as unobtrusive as
 possible, with advanced features available when you need them.  We
 hope you like the interface!
 
-* Example usage:
+* News:
+
+Sadly, [[https://adsabs.github.io/blog/ave-atque-vale][ADS Classic is dead]]. =bibslurp= used to parse the simple HTML structure of
+ADS Classic to make it available in Emacs. However, the new ADS runs completely
+on (non-free) Javascript, and so the old code has stopped working.
+
+This repo contains a new version of =bibslurp= which uses the official APIs
+attempting to provide the same functionalities the old =bibslurp= had (and maybe
+more in the future).
+
+What is working at the moment:
+- Simple search (limited to first few results)
+- Copy a bibtex entry pressing return
+
+To use the new =bibslurp= a API key is necessary. A key can be obtained following
+the instructions [[https://github.com/adsabs/adsabs-dev-api#access][here]]. Next, the variable =ads-auth-token= has to be set:
+``` emacs-lisp
+(setq ads-auth-token "XXXX")
+```
+
+* Legacy:
+
+** Example usage:
   1. add an entry to a bibtex buffer:
      #+BEGIN_EXAMPLE
      M-x bibslurp-query-ads RET ^Quataert 2008 RET
@@ -31,7 +53,7 @@ hope you like the interface!
      #+END_EXAMPLE
 
 
-* Description:
+** Description:
   Creating a BibTeX file is one of the more tedious aspects of writing
   a paper.  The NASA ADS system (http://adswww.harvard.edu/) helps a
   lot by making bibliography data available and easy to find, but
@@ -99,7 +121,7 @@ hope you like the interface!
    command with a number.  For example, =7 x= will fire up your browser to the
    arXiv version of the seventh abstract in the list.
 
-* Installation:
+** Installation:
   Use package.el. You'll need to add MELPA to your archives:
 
   #+BEGIN_SRC emacs-lisp
@@ -123,7 +145,7 @@ hope you like the interface!
   (global-set-key (kbd "C-x M-b") 'bibslurp-query-ads)
   #+END_SRC
 
-* License
+** License
  Copyright (C) 2013-2015 authors
 
  written by Mike McCourt and Mosè Giordano
@@ -132,7 +154,7 @@ hope you like the interface!
 
 
 
-* TODO:
+** TODO:
   1. Look into using an xml parser instead of regular expressions
 
 
