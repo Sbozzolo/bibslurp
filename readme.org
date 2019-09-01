@@ -24,9 +24,9 @@ What is working at the moment:
 
 To use the new =bibslurp= a API key is necessary. A key can be obtained following
 the instructions [[https://github.com/adsabs/adsabs-dev-api#access][here]]. Next, the variable =ads-auth-token= has to be set:
-``` emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (setq ads-auth-token "XXXX")
-```
+#+END_SRC
 
 * Legacy:
 
