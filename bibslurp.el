@@ -262,7 +262,8 @@ At the moment, title,abstract, journal, date and authors."
 		  :headers
 		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :params
-		  `(("q" . ,bibcode) ("fl" . "title,abstract,pub,author,year")
+		  `(("q" . ,bibcode)
+                    ("fl" . "title,abstract,pub,author,year,citation_count")
                     )
 		  :type "GET"
                   ; Why does this sync have to be here?
@@ -595,6 +596,7 @@ and display in a new buffer. Wrap text is it is longer than fill-column."
          (date (cdr (assoc 'year additional-info)))
          (abs (cdr (assoc 'abstract additional-info)))
          (journal (cdr (assoc 'pub additional-info)))
+         (citations (number-to-string (cdr (assoc 'citation_count additional-info))))
          (inhibit-read-only t))
       (let ((buf (get-buffer-create "ADS Abstract")))
         (with-current-buffer buf
@@ -602,6 +604,7 @@ and display in a new buffer. Wrap text is it is longer than fill-column."
           (insert (propertize (s-word-wrap fill-column title) 'face 'bibslurp-title-face) "\n")
           (insert (propertize (s-word-wrap fill-column authors) 'face 'bibslurp-author-face) "\n")
           (insert journal ", " date "\n")
+          (insert "Citations: " citations "\n")
           (insert "\n\n")
           (insert (s-word-wrap fill-column abs))
           (view-mode)
