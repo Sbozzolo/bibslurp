@@ -194,17 +194,6 @@ configuration."
   (when (get-register :bibslurp-window)
     (jump-to-register :bibslurp-window)))
 
-(defun bibslurp/build-ads-url (search-string)
-  "Helper function which turns a search string (e.g. \"^Quataert
-2008\") into an ads search url.  Used by `bibslurp-query-ads'."
-  (let ((base-url
-         "http://adsabs.harvard.edu/cgi-bin/nph-basic_connect?qsearch=")
-        (url-sep "+")
-        (url-end "&version=1"))
-    (concat base-url
-            (replace-regexp-in-string " " url-sep search-string)
-            url-end)))
-
 ;; Functions to interface with ADS APIs
 (defun bibslurp/find-number-of-results (search-string)
   "Make the API request and find how many results are expected."
@@ -464,8 +453,6 @@ Press \"C-c C-c\" to turn to the advanced search interface."
 					  'bibslurp-query-history)))
 	    ;; Show search results for the given search string.
 	    (window-configuration-to-register :bibslurp-window)
-	    ;; (bibslurp/search-results (bibslurp/build-ads-url search-string)
-	    ;;       		   search-string)
             (bibslurp/search-results-with-request (bibslurp/requested-data search-string)
 	        		                  search-string)
             )
