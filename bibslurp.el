@@ -600,9 +600,8 @@ TODO: Improve support for non ASCII characters.
 ;;; functions to display abstracts
 
 (defun bibslurp/format-abs (bibcode)
-  "take a buffer containing the HTML for an abstract page and
-turn it into something human readable. Wrap text is it is longer
-than fill-column."
+  "Query for additional information related to the chosen bibcode
+and display in a new buffer. Wrap text is it is longer than fill-column."
   (let* ((additional-info (bibslurp/request-additional-info bibcode))
          (title (aref (cdr (assoc 'title additional-info)) 0))
          (authors   (mapconcat 'identity (cdr (assoc 'author additional-info)) "; "))
