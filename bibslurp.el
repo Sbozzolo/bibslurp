@@ -555,34 +555,13 @@ NASA ADS database. It works on the entry at the point."
         (date (get-text-property (point) 'date)))
     (kill-new (bibslurp/bibcode-to-bibtex
                bibcode
-               (bibslurp/suggest-label-with-request authors date)
+               (bibslurp/suggest-label authors date)
                ))
     (message "Saved bibtex entry to kill-ring.")
     )
   )
 
-(defun bibslurp/suggest-label ()
-  "Parse an abstract page and suggest a bibtex label.  Returns an
-empty string if no suggestion is found.
-
-TODO: Improve support for non ASCII characters.
-"
-  (save-excursion
-    (goto-char (point-min))
-    (let ((author-regexp
-           "<meta\\s-+name=\"citation_authors\"\\s-+content=\"\\([[:alnum:] -]+\\)")
-          (date-regexp
-           "<meta\\s-+name=\"citation_date\"\\s-+content=\"\\([0-9/-]+\\)")
-	  author date)
-      (when (re-search-forward author-regexp nil t)
-	;; Replace spaces with hyphens in author name.
-        (setq author (replace-regexp-in-string " " "-"
-					       (match-string-no-properties 1)))
-	(when (re-search-forward date-regexp nil t)
-	  (setq date (match-string-no-properties 1))
-	  (concat author (s-right 4 date)))))))
-
-(defun bibslurp/suggest-label-with-request (authors date)
+(defun bibslurp/suggest-label (authors date)
   "Parse an abstract page and suggest a bibtex label.  Returns an
 empty string if no suggestion is found.
 
