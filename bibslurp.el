@@ -282,7 +282,9 @@ request and parsing the output."
 
 (defun bibslurp/request-additional-info (bibcode)
   "Make the query and return the data in a associative list."
-  (aref (bibslurp/extract-data-from-request (bibslurp/make-request-additional-info bibcode)) 0))
+  ;; The output is in form of a vector, we just need the first entry
+  (aref (bibslurp/extract-data-from-request
+         (bibslurp/make-request-additional-info bibcode)) 0))
 
 (defun bibslurp/clean-entry-from-request (entry)
   "Return the same list as returned by the old
