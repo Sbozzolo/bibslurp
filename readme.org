@@ -1,12 +1,10 @@
 #+TITLE: bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
-=bibslurp= provides an easy way to find BibTeX entries from the [[http://adswww.harvard.edu/][NASA
-ADS]] server and to copy them into your local database.  All from within
-emacs!
+=bibslurp= provides an easy way to find BibTeX entries from the [[http://adswww.harvard.edu/][NASA ADS]] server
+and to copy them into your local database. All from within emacs!
 
-We have tried to make bibslurp as simple and as unobtrusive as
-possible, with advanced features available when you need them.  We
-hope you like the interface!
+We have tried to make bibslurp as simple and as unobtrusive as possible, with
+advanced features available when you need them. We hope you like the interface!
 
 * News:
 
@@ -31,6 +29,7 @@ the instructions [[https://github.com/adsabs/adsabs-dev-api#access][here]]. Next
 
 * TODO:
   - [ ] Use pager in the results instead of asking for all the rows
+  - [ ] If scrolling with "n", the last result is only partially displayed
 
 * Legacy:
 
