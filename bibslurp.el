@@ -411,7 +411,6 @@ the mode at any time by hitting 'q'."
 
 Press \"C-c C-c\" to turn to the advanced search interface."
   (interactive)
-  (makunbound 'ads-auth-token)
   (if (not (boundp 'ads-auth-token))
       (error "API key not set! Set the variable ads-auth-token")
     (let ((map (make-sparse-keymap)))
