@@ -180,19 +180,6 @@ only enter the mode via `bibslurp-query-ads'.
 \\<bibslurp-mode-map>"
   (use-local-map bibslurp-mode-map))
 
-(defun bibslurp/follow-link (number)
-  "Return the URL corresponding to the abstract NUMBER.
-
-Argument may be either an integer or a string.  Return nil if the
-link number is invalid.  Links are stored in the list
-`bibslurp-entry-list', which is populated by `bibslurp-query-ads'
-once the search results are returned."
-  (setq number
-	(if (integerp number)
-	    (number-to-string number)
-	  number))
-  (nth 6 (assoc-string number bibslurp-entry-list)))
-
 (defun bibslurp-quit ()
   "Close the bibslurp buffer and restore the previous window
 configuration."
