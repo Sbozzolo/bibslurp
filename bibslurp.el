@@ -525,34 +525,6 @@ TODO: this is really messy code.  cleanup."
 	     (when title (s-word-wrap 80 title))
 	     "\n\n\n\n") 'number num 'bibcode abs-name 'authors authors 'date date)))
 
-;; functions to find and retrieve bibtex entries
-(defun bibslurp/absurl-to-bibdata (abs-url)
-  "Take the URL of an ADS abstract page and return data about the
-corresponding bibtex entry.
-
-This list has the form (bib-url new-label), where bib-url is the
-bib-url of the ADS bibtex page and new-label is the suggested
-label.
-
-new-label may be nil if a bibtex url is found, but it can't
-suggest a new label.  If the bibtex url is not found, this
-function simply returns nil."
-  (let ((buf (url-retrieve-synchronously abs-url)))
-    ;; define a url string as anything in double quotes, that doesn't
-    ;; contain a double quote.  I think this is valid...
-    ;;
-    ;; I'm not sure if this regexp should be more permissive about
-    ;; matching whitespace in different parts of the tag.  this seems
-    ;; to work for ADS at least.
-    (let ((bib-link-regex
-           "<a\\s-*href=\\\"\\([^\\\"]+?\\)\\\"\\s-*/?>\\s-*Bibtex"))
-      (with-current-buffer buf
-        (goto-char (point-min))
-        (when (re-search-forward bib-link-regex nil t)
-          (let ((bib-url (match-string-no-properties 1))
-                (new-label (bibslurp/suggest-label)))
-            (list bib-url new-label)))))))
-
 (defcustom bibslurp-bibtex-label-format 'author-year
   "Format of the label of the BibTeX entry provided.
 It can be either
