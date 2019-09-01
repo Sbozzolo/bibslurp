@@ -1,10 +1,10 @@
 ;;; bibslurp.el --- retrieve BibTeX entries from NASA ADS
 
 ;; Copyright (C) 2019 Gabriele Bozzola
-;; Copyright (C) 2013 Mike McCourt
+;; Copyright (C) 2013-2018 Mike McCourt
 ;;
 ;; Authors: Mike McCourt <mkmcc@astro.berkeley.edu>
-;; Authors: Gabriele Bozzola <sbozzolator@gmail.com>
+;;          Gabriele Bozzola <gabrielebozzola@email.arizona.edu>
 ;; URL: https://github.com/mkmcc/bibslurp
 ;; Version: 0.0.3
 ;; Keywords: bibliography, nasa ads
@@ -47,12 +47,6 @@
 ;; Move to the abstract you want to cite with n and p keys, or search
 ;; in the buffer with s or r, and then press
 ;;   RET
-;;   q
-;;   C-y
-
-;; If you want to select a different abstract, just type the
-;; corresponding number before pressing RET:
-;;   15 RET
 ;;   q
 ;;   C-y
 
@@ -100,6 +94,12 @@
 ;; Alternatively, you can just save this file and do the standard
 ;; (add-to-list 'load-path "/path/to/bibslurp.el")
 ;; (require 'bibslurp)
+;;
+;; A ADS API token is needed. The instructions to get one can be
+;; found at the webpage:
+;; https://github.com/adsabs/adsabs-dev-api#access
+;; Once you have a token, set the variable ads-auth-token to your
+;; token.
 
 ;;; Code:
 (require 's)
@@ -110,13 +110,12 @@
   (require 'wid-edit))
 
 (defgroup bibslurp nil
-  "retrieve BibTeX entries from NASA ADS."
+  "Retrieve BibTeX entries from NASA ADS."
   :prefix "bibslurp-"
   :group 'convenience
   :tag "bibslurp"
   :link '(url-link :tag "Home Page"
 		   "https://mkmcc.github.io/software/bibslurp.html"))
-
 
 (defcustom ads-auth-token nil
   "ADS API token. To generate an access token visit the page:
@@ -280,12 +279,12 @@ At the moment, title,abstract, journal, date and authors."
 
 
 (defun bibslurp/extract-bibtex-from-request (request-data)
-  "Return the actual bibtex file"
+  "Return the actual bibtex file."
   (cdr (assoc 'export request-data))
   )
 
 (defun bibslurp/request-bibtex (bibcode)
-  "Return the actual bibtex file for the bibcode"
+  "Return the actual bibtex file for the bibcode."
   (bibslurp/extract-bibtex-from-request (bibslurp/make-request-bibtex bibcode))
   )
 
@@ -297,7 +296,7 @@ At the moment, title,abstract, journal, date and authors."
   )
 
 (defun bibslurp/requested-data (search-string)
-  "Make the query and return the data"
+  "Make the query and return the data."
   (bibslurp/extract-data-from-request (bibslurp/make-request search-string))
   )
 
@@ -320,7 +319,7 @@ At the moment, title,abstract, journal, date and authors."
   )
 
 (defun bibslurp/prepare-entry-list (requested-data)
-  "Prepend the number of the result to the requested data"
+  "Prepend the number of the result to the requested data."
   (seq-map-indexed
    (lambda
      (entry idx)
