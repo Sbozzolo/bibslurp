@@ -282,7 +282,7 @@ configuration."
         (abs-name  (cdr (assoc 'bibcode entry)))
         (title     (aref (cdr (assoc 'title entry)) 0))
         )
-        (list score abs-name date authors title "DUMMY"))
+        (list score abs-name date authors title))
   )
 
 (defun bibslurp/prepare-entry-list (requested-data)
@@ -502,7 +502,7 @@ that's the case..."
 	(setq abs-name (replace-regexp-in-string "&amp;" "&" abs-name))
         (list num score abs-name date authors title abs-url)))))
 
-(defun bibslurp/print-entry (num score abs-name date authors title abs-url)
+(defun bibslurp/print-entry (num score abs-name date authors title)
   "Format a single search result for printing.
 
 TODO: this is really messy code.  cleanup."
