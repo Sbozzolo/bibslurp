@@ -213,6 +213,22 @@ configuration."
             url-end)))
 
 ;; Functions to interface with ADS APIs
+(defun bibslurp/find-number-of-results (search-string)
+  "Make the API request and find how many results are expected."
+  (cdr (assoc 'numFound
+          (assoc 'response
+                 (request-response-data (request
+		                         "https://api.adsabs.harvard.edu/v1/search/query"
+		                         :headers
+		                         `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
+		                         :params
+		                         `(("q" . ,search-string))
+		                         :type "GET"
+                                        ; Why does this sync have to be here?
+                                         :sync t
+		                         :parser 'json-read))))))
+
+
 (defun bibslurp/make-request (search-string)
   "Make the API request using the token and retrieving
  * 1: score
