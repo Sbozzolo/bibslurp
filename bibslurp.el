@@ -229,7 +229,7 @@ configuration."
 		  :headers
 		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :params
-		  `(("q" . ,search-string) ("fl" . "bibcode,date,author,title,score")
+		  `(("q" . ,search-string) ("fl" . "bibcode,year,author,title,score")
                     ("rows" . 2000)
                     )
 		  :type "GET"
@@ -524,7 +524,7 @@ TODO: this is really messy code.  cleanup."
      (concat meta "\n"
 	     (s-truncate 80
 			 (concat (make-string 8 ? )
-				 (propertize (s-left 4 date) 'face 'bibslurp-date-face) " "
+				 (propertize date 'face 'bibslurp-date-face) " "
 				 (propertize authors 'face 'bibslurp-author-face)))
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
