@@ -519,7 +519,7 @@ TODO: this is really messy code.  cleanup."
      (concat meta "\n"
 	     (s-truncate 80
 			 (concat (make-string 8 ? )
-				 (propertize (s-right 4 date) 'face 'bibslurp-date-face) " "
+				 (propertize (s-left 4 date) 'face 'bibslurp-date-face) " "
 				 (propertize authors 'face 'bibslurp-author-face)))
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
