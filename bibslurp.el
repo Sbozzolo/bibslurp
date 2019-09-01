@@ -230,9 +230,7 @@ configuration."
 		  :type "GET"
                   ; Why does this sync have to be here?
                   :sync t
-		  :parser 'json-read)
-                 )
-  )
+		  :parser 'json-read)))
 
 (defun bibslurp/make-request-bibtex (bibcode)
   "Make the API request using the token to obtain the bibtex file."
@@ -245,9 +243,7 @@ configuration."
 		  :type "POST"
                   ; Why does this sync have to be here?
                   :sync t
-		  :parser 'json-read)
-                 )
-  )
+		  :parser 'json-read)))
 
 (defun bibslurp/make-request-additional-info (bibcode)
   "Make the API request using the token to obtain additional information.
@@ -262,19 +258,14 @@ At the moment, title,abstract, journal, date and authors."
 		  :type "GET"
                   ; Why does this sync have to be here?
                   :sync t
-		  :parser 'json-read)
-                 )
-  )
+		  :parser 'json-read)))
 
-
-(defun bibslurp/extract-bibtex-from-request (request-data)
-  "Return the actual bibtex file."
-  (cdr (assoc 'export request-data))
-  )
 
 (defun bibslurp/request-bibtex (bibcode)
-  "Return the actual bibtex file for the bibcode."
-  (bibslurp/extract-bibtex-from-request (bibslurp/make-request-bibtex bibcode))
+  "Return the actual bibtex file corresponding the bibcode by making a
+request and parsing the output."
+  ;; Extract the file from the query response.
+  (cdr (assoc 'export (bibslurp/make-request-bibtex bibcode)))
   )
 
 (defun bibslurp/extract-data-from-request (request-data)
