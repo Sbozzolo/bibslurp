@@ -242,7 +242,9 @@ configuration."
 		  :headers
 		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :params
-		  `(("q" . ,search-string) ("fl" . "bibcode,date,author,title,score"))
+		  `(("q" . ,search-string) ("fl" . "bibcode,date,author,title,score")
+                    ("rows" . 2000)
+                    )
 		  :type "GET"
                   ; Why does this sync have to be here?
                   :sync t
