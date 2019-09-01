@@ -562,7 +562,7 @@ It can be either
   :type '(choice (const :tag "AuthorYear" author-year)
 		 (const :tag "Bibcode"    bibcode)))
 
-(defun bibslurp/biburl-to-bib-with-request (bibcode &optional new-label)
+(defun bibslurp/bibcode-to-bibtex (bibcode &optional new-label)
   "Take the bibcode for an ADS bibtex entry and return the entry as a
 string.  The format of the label is controlled by
 `bibslurp-bibtex-label-format'."
@@ -574,33 +574,6 @@ string.  The format of the label is controlled by
            (string-match "@\\sw+{\\([^,]+\\)," bibtex)
            (replace-match new-label t t bibtex 1))))))
 
-
-(defun bibslurp/biburl-to-bib (bib-url &optional new-label)
-  "Take the URL for an ADS bibtex entry and return the entry as a
-string.  The format of the label is controlled by
-`bibslurp-bibtex-label-format'."
-  (let ((buf (url-retrieve-synchronously bib-url)))
-    (with-current-buffer buf
-      (goto-char (point-min))
-      ;; first, look for a bibtex definition and replace the label if
-      ;; appropriate.
-      (when (re-search-forward "@\\sw+{\\([^,]+\\)," nil t)
-	;; If `bibslurp-bibtex-label-format' is set to `author-year', replace
-	;; the label with the one returned by `bibslurp/suggest-label',
-	;; otherwise use the Bibcode as label.
-	(and
-	 (equal bibslurp-bibtex-label-format 'author-year)
-	 new-label (not (string-equal new-label ""))
-	 (replace-match new-label t t nil 1))
-        ;; next, find the definition and return it.  use the nifty
-        ;; function `forward-sexp' to navigate to the end.
-        (goto-char (point-min))
-        (re-search-forward "@\\sw+")
-        (let ((bpoint (point)))
-          (forward-sexp)
-          (concat (match-string-no-properties 0)
-                  (buffer-substring bpoint (point))))))))
-
 (defun bibslurp-slurp-bibtex ()
   "Automatically find the bibtex entry for an abstract in the
 NASA ADS database. It works on the entry at the point."
@@ -608,7 +581,7 @@ NASA ADS database. It works on the entry at the point."
   (let ((bibcode (get-text-property (point) 'bibcode))
         (authors (get-text-property (point) 'authors))
         (date (get-text-property (point) 'date)))
-    (kill-new (bibslurp/biburl-to-bib-with-request
+    (kill-new (bibslurp/bibcode-to-bibtex
                bibcode
                (bibslurp/suggest-label-with-request authors date)
                ))
