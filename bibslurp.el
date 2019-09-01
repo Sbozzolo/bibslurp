@@ -523,7 +523,7 @@ TODO: this is really messy code.  cleanup."
 				 (propertize authors 'face 'bibslurp-author-face)))
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
-	     "\n\n\n\n") 'bibcode abs-name 'authors authors 'date date)))
+	     "\n\n\n\n") 'number num 'bibcode abs-name 'authors authors 'date date)))
 
 ;; functions to find and retrieve bibtex entries
 (defun bibslurp/absurl-to-bibdata (abs-url)
