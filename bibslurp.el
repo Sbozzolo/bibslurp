@@ -124,6 +124,15 @@ this variable with (setq ads-auth-token TOKEN)."
   :type 'string
   :group 'bibslurp)
 
+(defcustom bibslurp-bibtex-label-format 'author-year
+  "Format of the label of the BibTeX entry provided.
+It can be either
+ * 'author-year
+ * 'bibcode"
+  :group 'bibslurp
+  :type '(choice (const :tag "AuthorYear" author-year)
+		 (const :tag "Bibcode"    bibcode)))
+
 ;; define font-lock faces
 (defface bibslurp-number-face
   '((t (:inherit 'font-lock-string-face)))
@@ -527,7 +536,8 @@ TODO: this is really messy code.  cleanup."
          (fmt-score (propertize (format "(%s)" score) 'face 'bibslurp-score-face))
          (pad (make-string (- 80 (length fmt-num) (length fmt-score)) ? ))
          (meta (concat fmt-num pad fmt-score)))
-    ;; Attach information like bibcode, authors and date
+    ;; Attach information like bibcode, authors and date.
+    ;; This is used later.
     (propertize
      (concat meta "\n"
 	     (s-truncate 80
@@ -537,15 +547,6 @@ TODO: this is really messy code.  cleanup."
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
 	     "\n\n\n\n") 'number num 'bibcode abs-name 'authors authors 'date date)))
-
-(defcustom bibslurp-bibtex-label-format 'author-year
-  "Format of the label of the BibTeX entry provided.
-It can be either
- * 'author-year
- * 'bibcode"
-  :group 'bibslurp
-  :type '(choice (const :tag "AuthorYear" author-year)
-		 (const :tag "Bibcode"    bibcode)))
 
 (defun bibslurp/bibcode-to-bibtex (bibcode &optional new-label)
   "Take the bibcode for an ADS bibtex entry and return the entry as a
