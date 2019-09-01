@@ -117,7 +117,14 @@
   :link '(url-link :tag "Home Page"
 		   "https://mkmcc.github.io/software/bibslurp.html"))
 
-;;; start by making a rudimentary web browser
+
+(defcustom ads-auth-token nil
+  "ADS API token. To generate an access token visit the page:
+https://github.com/adsabs/adsabs-dev-api#access. Then, save it to
+this variable with (setq ads-auth-token TOKEN)."
+  :type 'string
+  :group 'bibslurp)
+
 ;; define font-lock faces
 (defface bibslurp-number-face
   '((t (:inherit 'font-lock-string-face)))
@@ -438,7 +445,7 @@ the mode at any time by hitting 'q'."
 
 Press \"C-c C-c\" to turn to the advanced search interface."
   (interactive)
-  (if (not (boundp 'ads-auth-token))
+  (if (not ads-auth-token)
       (error "API key not set! Set the variable ads-auth-token")
     (let ((map (make-sparse-keymap)))
       (set-keymap-parent map minibuffer-local-map)

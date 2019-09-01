@@ -30,7 +30,6 @@ the instructions [[https://github.com/adsabs/adsabs-dev-api#access][here]]. Next
 #+END_SRC
 
 * TODO:
-  - [ ] Don't use setq for the token
   - [ ] Use pager in the results instead of asking for all the rows
 
 * Legacy:
