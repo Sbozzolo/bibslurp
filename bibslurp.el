@@ -147,8 +147,8 @@
 (defvar bibslurp-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "RET") 'bibslurp-slurp-bibtex-with-request)
-    (define-key map (kbd "z")   'bibslurp-slurp-bibtex-with-request)
+    (define-key map (kbd "RET") 'bibslurp-slurp-bibtex)
+    (define-key map (kbd "z")   'bibslurp-slurp-bibtex)
     (define-key map "a" 'bibslurp-show-abstract)
     ;; Navigation
     (define-key map (kbd "SPC")   'scroll-up)
@@ -601,36 +601,7 @@ string.  The format of the label is controlled by
           (concat (match-string-no-properties 0)
                   (buffer-substring bpoint (point))))))))
 
-(defun bibslurp-slurp-bibtex (&optional link-number)
-  "Automatically find the bibtex entry for an abstract in the
-NASA ADS database.
-
-This function is rather specific -- it presumes you've used
-`bibslurp-query-nasa-ads' to search ADS for an abstract.  Then, you
-can call this function from the *Bibslurp* buffer.  It will prompt
-for the number in front of the abstract you want, then will find
-the bibtex entry and save it to the kill ring.
-
-The functions `bibslurp/absurl-to-bibdata' and `bibslurp/biburl-to-bib' are
-more general."
-  (interactive)
-  (setq link-number
-	(or link-number
-	    current-prefix-arg
-	    (get-text-property (point) 'number)
-	    (read-string "Link number: ")))
-  (let ((bib-data (bibslurp/absurl-to-bibdata
-		   (bibslurp/follow-link link-number))))
-    (cond
-     ((eq bib-data nil)
-      (message "Couldn't find link to bibtex entry."))
-     (t
-      (let ((bib-url (car bib-data))
-	    (new-label (cadr bib-data)))
-	(kill-new (bibslurp/biburl-to-bib bib-url new-label)))
-      (message "Saved bibtex entry to kill-ring.")))))
-
-(defun bibslurp-slurp-bibtex-with-request ()
+(defun bibslurp-slurp-bibtex ()
   "Automatically find the bibtex entry for an abstract in the
 NASA ADS database. It works on the entry at the point."
   (interactive)
