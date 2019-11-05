@@ -28,9 +28,10 @@ the instructions [[https://github.com/adsabs/adsabs-dev-api#access][here]]. Next
 #+END_SRC
 
 * TODO:
+  - [ ] Remove sync statements
   - [ ] Use pager in the results instead of asking for all the rows
-  - [ ] If scrolling with "n", the last result is only partially displayed
   - [ ] Instead of journal name, put actual journal info in abstract
+  - [ ] If scrolling with "n", the last result is only partially displayed
 
 * Legacy:
 
