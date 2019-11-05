@@ -108,6 +108,17 @@
 (require 'widget)
 (eval-when-compile
   (require 'wid-edit))
+(require 'seq)
+;; seq-map-indexed is not available in versions of Emacs older than 26.1
+;; This code is part of GNU Emacs
+(unless (fboundp 'seq-map-indexed)
+  (defun seq-map-indexed (function sequence)
+    (let ((index 0))
+      (seq-map (lambda (elt)
+                 (prog1
+                     (funcall function elt index)
+                   (setq index (1+ index))))
+               sequence))))
 
 (defgroup bibslurp nil
   "Retrieve BibTeX entries from NASA ADS."
