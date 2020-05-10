@@ -23,7 +23,7 @@
 ;; General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with bibslurp.  If not, see http://www.gnu.org/licenses.
+;; along with bibslurp.  If not, see https://www.gnu.org/licenses.
 
 ;;; Commentary:
 
@@ -109,6 +109,7 @@
 (eval-when-compile
   (require 'wid-edit))
 (require 'seq)
+
 ;; seq-map-indexed is not available in versions of Emacs older than 26.1
 ;; This code is part of GNU Emacs
 (unless (fboundp 'seq-map-indexed)
@@ -244,7 +245,7 @@ configuration."
 		  :headers
 		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :params
-		  `(("q" . ,search-string) ("fl" . "bibcode,year,author,title,score")
+		  `(("q" . ,search-string) ("fl" . "bibcode,year,author,title,score,identifier")
                     ("rows" . 2000)
                     )
 		  :type "GET"
@@ -267,7 +268,9 @@ configuration."
 
 (defun bibslurp/make-request-additional-info (bibcode)
   "Make the API request using the token to obtain additional information.
-At the moment, title,abstract, journal, date and authors."
+At the moment, title, abstract, journal, date and authors.
+
+Identifier is used to extract the arxiv number."
   (request-response-data (request
 		  "https://api.adsabs.harvard.edu/v1/search/query"
 		  :headers
@@ -280,7 +283,6 @@ At the moment, title,abstract, journal, date and authors."
                   ; Why does this sync have to be here?
                   :sync t
 		  :parser 'json-read)))
-
 
 (defun bibslurp/request-bibtex (bibcode)
   "Return the actual bibtex file corresponding the bibcode by making a
@@ -317,8 +319,9 @@ request and parsing the output."
         (authors   (mapconcat 'identity (cdr (assoc 'author entry)) "; "))
         (abs-name  (cdr (assoc 'bibcode entry)))
         (title     (aref (cdr (assoc 'title entry)) 0))
+        (arxiv-num (bibslurp/get-arxiv-number-from-identifiers (cdr (assoc 'identifier entry))))
         )
-        (list score abs-name date authors title))
+        (list score abs-name date authors title arxiv-num))
   )
 
 (defun bibslurp/prepare-entry-list (requested-data)
@@ -329,6 +332,22 @@ request and parsing the output."
      (cons (number-to-string idx) (bibslurp/clean-entry-from-request entry)))
    requested-data)
   )
+
+(defun bibslurp/get-arxiv-number-from-identifiers (identifiers)
+  "Return the arXiv number for a list of identifiers as returned
+by the API request.
+
+The input value should be the vector of identifiers. For example:
+['2019arXiv190301036B' '2019PhRvD..99j4044B' '10.1103/PhysRevD.99.104044'
+ 'arXiv:1903.01036' '2019arXiv190301036B' '10.1103/PhysRevD.99.104044']
+
+Then, we filter to look for the ones that start with arXiv, and
+we take the substring corresponding to the number.
+"
+  (let ((candidate-arxiv-nums (seq-filter (lambda (elt) (string-prefix-p "arXiv:" elt)) identifiers)))
+    (if (> (length candidate-arxiv-nums) 0) ; Check if there is at least one matching
+        (substring (car candidate-arxiv-nums) 6)
+      nil)))
 
 ;; functions to parse and display the search results page.
 (defvar bibslurp-query-history nil
@@ -344,7 +363,8 @@ For each entry, the elements are:
  * 3: date
  * 4: authors
  * 5: title
- * 6: URL of the abstract
+ * 6: arxiv-num
+ * 7: URL of the abstract
 All elements are string.")
 
 (defun bibslurp/search-results (search-url &optional search-string)
@@ -536,7 +556,7 @@ that's the case..."
 	(setq abs-name (replace-regexp-in-string "&amp;" "&" abs-name))
         (list num score abs-name date authors title abs-url)))))
 
-(defun bibslurp/print-entry (num score abs-name date authors title)
+(defun bibslurp/print-entry (num score abs-name date authors title arxiv-num)
   "Format a single search result for printing.
 
 TODO: this is really messy code.  cleanup."
@@ -558,7 +578,7 @@ TODO: this is really messy code.  cleanup."
 				 (propertize authors 'face 'bibslurp-author-face)))
 	     "\n\n"
 	     (when title (s-word-wrap 80 title))
-	     "\n\n\n\n") 'number num 'bibcode abs-name 'authors authors 'date date)))
+	     "\n\n\n\n") 'number num 'bibcode abs-name 'authors authors 'date date 'arxiv-num arxiv-num)))
 
 (defun bibslurp/bibcode-to-bibtex (bibcode &optional new-label)
   "Take the bibcode for an ADS bibtex entry and return the entry as a
