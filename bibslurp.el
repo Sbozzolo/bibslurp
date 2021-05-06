@@ -260,7 +260,7 @@ configuration."
 		  :headers
 		  `(("Authorization" . ,(concat "Bearer " ads-auth-token)))
 		  :data
-		  `(("bibcode" . ,bibcode))
+		  (json-encode `(("bibcode" . (,bibcode))))
 		  :type "POST"
                   ; Why does this sync have to be here?
                   :sync t
